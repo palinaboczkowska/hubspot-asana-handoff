@@ -1,0 +1,23 @@
+{
+  "rules": [
+    {
+      "name": "Nordic enterprise",
+      "when": {
+        "countries": ["Sweden", "Norway", "Denmark", "Finland"],
+        "minEmployees": 500
+      },
+      "ownerEmail": "anna.enterprise@example.com"
+    },
+    {
+      "name": "Retail and e-commerce",
+      "when": { "industries": ["RETAIL", "CONSUMER_GOODS"] },
+      "ownerEmail": "erik.retail@example.com"
+    },
+    {
+      "name": "Nordic small and mid-size",
+      "when": { "countries": ["Sweden", "Norway", "Denmark", "Finland"] },
+      "ownerEmail": "sara.nordics@example.com"
+    }
+  ],
+  "fallbackOwnerEmail": "inbound@example.com"
+}

@@ -1,0 +1,12 @@
+{
+  "tasks": [
+    {
+      "name": "Kick-off call with the customer",
+      "dueInDays": 3,
+      "assignTo": "salesOwner"
+    },
+    { "name": "Collect brand guidelines and assets", "dueInDays": 5 },
+    { "name": "Agree on deliverables and timeline", "dueInDays": 7 },
+    { "name": "First delivery to the customer", "dueInDays": 21 }
+  ]
+}
