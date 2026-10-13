@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "demo": "tsx src/demo.ts",
     "dev": "tsx watch src/server/index.ts",
-    "start": "node dist/server/index.js"
+    "start": "node dist/server/index.js",
+    "live": "tsx src/live.ts"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

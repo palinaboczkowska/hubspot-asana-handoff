@@ -58,7 +58,7 @@ flowchart LR
 
 ## Running it for real
 
-1. In HubSpot, create a private app with the scopes
+1. In HubSpot, create a service key (or an app) with the scopes
    `crm.objects.contacts.read/write`, `crm.objects.companies.read`,
    `crm.objects.deals.read`, `crm.objects.owners.read`, and webhook
    subscriptions for `contact.creation` and `deal.propertyChange`
@@ -73,8 +73,12 @@ flowchart LR
 ## Status and limits
 
 - Logic, signature check, queue and both clients are built and tested
-  offline against fakes. **Not yet run against a live HubSpot or Asana
-  account.**
+  offline against fakes.
+- **Verified against a live HubSpot test account (2026-10-13):** a new
+  contact was routed and got its owner and a note; a won deal was read with
+  its company and owner. Asana ran as a dry run (no token yet). Webhook
+  delivery from HubSpot is not set up yet; jobs were started with
+  `npm run live -- route <contactId>` / `handoff <dealId>`.
 - The store and the queue are in memory. Fine for one instance; on Cloud
   Run the store would move to Firestore and the queue to Cloud Tasks or
   Pub/Sub, because instances restart and scale out.

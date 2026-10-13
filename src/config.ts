@@ -30,8 +30,10 @@ function readJson(path: string): unknown {
 }
 
 /** Rules and the task template live in config/, so changing them needs no code change. */
-export function loadRouting(): RoutingConfig {
-  return RoutingConfigSchema.parse(readJson("config/routing.json"));
+export function loadRouting(
+  path = process.env.ROUTING_FILE ?? "config/routing.json",
+): RoutingConfig {
+  return RoutingConfigSchema.parse(readJson(path));
 }
 
 export function loadTemplate(): HandoffTemplate {
