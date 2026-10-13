@@ -1,19 +1,27 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import type { AsanaTarget } from "./asana/client.js";
 import { HandoffTemplateSchema, type HandoffTemplate } from "./handoff/template.js";
 import { RoutingConfigSchema, type RoutingConfig } from "./routing/rules.js";
 
-const EnvSchema = z.object({
-  PORT: z.coerce.number().default(8080),
-  /** The exact public URL of the webhook endpoint, as HubSpot calls it (part of the signature). */
-  PUBLIC_WEBHOOK_URL: z.string().url(),
-  HUBSPOT_TOKEN: z.string().min(1),
-  HUBSPOT_CLIENT_SECRET: z.string().min(1),
-  /** Internal value of the "won" stage in the deal pipeline. */
-  HUBSPOT_WON_STAGE: z.string().default("closedwon"),
-  ASANA_TOKEN: z.string().min(1),
-  ASANA_TEAM_GID: z.string().min(1),
-});
+const EnvSchema = z
+  .object({
+    PORT: z.coerce.number().default(8080),
+    /** The exact public URL of the webhook endpoint, as HubSpot calls it (part of the signature). */
+    PUBLIC_WEBHOOK_URL: z.string().url(),
+    HUBSPOT_TOKEN: z.string().min(1),
+    HUBSPOT_CLIENT_SECRET: z.string().min(1),
+    /** Internal value of the "won" stage in the deal pipeline. */
+    HUBSPOT_WON_STAGE: z.string().default("closedwon"),
+    ASANA_TOKEN: z.string().min(1),
+    /** Set one of these: a team in an organization, or a personal workspace. */
+    ASANA_TEAM_GID: z.string().min(1).optional(),
+    ASANA_WORKSPACE_GID: z.string().min(1).optional(),
+  })
+  .refine((env) => env.ASANA_TEAM_GID || env.ASANA_WORKSPACE_GID, {
+    message: "Set ASANA_TEAM_GID or ASANA_WORKSPACE_GID",
+    path: ["ASANA_TEAM_GID"],
+  });
 export type Env = z.infer<typeof EnvSchema>;
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
@@ -38,4 +46,13 @@ export function loadRouting(
 
 export function loadTemplate(): HandoffTemplate {
   return HandoffTemplateSchema.parse(readJson("config/handoff.json"));
+}
+
+export function asanaTarget(env: {
+  ASANA_TEAM_GID?: string;
+  ASANA_WORKSPACE_GID?: string;
+}): AsanaTarget | null {
+  if (env.ASANA_TEAM_GID) return { teamGid: env.ASANA_TEAM_GID };
+  if (env.ASANA_WORKSPACE_GID) return { workspaceGid: env.ASANA_WORKSPACE_GID };
+  return null;
 }

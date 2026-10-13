@@ -4,18 +4,35 @@ import type { AsanaApi, AsanaProject } from "./types.js";
 
 const BASE = "https://app.asana.com/api/1.0";
 
-/** Asana REST API with a personal access token. Projects are created in one team. */
+/**
+ * Where new projects go: a team in an organization, or a personal
+ * workspace (which has no teams).
+ */
+export type AsanaTarget = { teamGid: string } | { workspaceGid: string };
+
+/** Asana REST API with a personal access token. */
 export class AsanaClient implements AsanaApi {
   constructor(
     private readonly token: string,
-    private readonly teamGid: string,
+    private readonly target: AsanaTarget,
   ) {}
 
   async createProject(name: string, notes: string): Promise<AsanaProject> {
     const raw = await requestJson<unknown>(
       `${BASE}/projects?opt_fields=gid,permalink_url`,
       this.token,
-      { method: "POST", body: { data: { name, notes, team: this.teamGid } } },
+      {
+        method: "POST",
+        body: {
+          data: {
+            name,
+            notes,
+            ...("teamGid" in this.target
+              ? { team: this.target.teamGid }
+              : { workspace: this.target.workspaceGid }),
+          },
+        },
+      },
     );
     const { data } = z
       .object({ data: z.object({ gid: z.string(), permalink_url: z.string() }) })

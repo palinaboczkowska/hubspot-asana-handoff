@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { AsanaClient } from "../asana/client.js";
-import { loadEnv, loadRouting, loadTemplate } from "../config.js";
+import { asanaTarget, loadEnv, loadRouting, loadTemplate } from "../config.js";
 import { handleJob } from "../handoff/handlers.js";
 import { HubSpotClient } from "../hubspot/client.js";
 import type { Job } from "../hubspot/events.js";
@@ -11,7 +11,7 @@ import { createApp } from "./app.js";
 const env = loadEnv();
 const deps = {
   hubspot: new HubSpotClient(env.HUBSPOT_TOKEN),
-  asana: new AsanaClient(env.ASANA_TOKEN, env.ASANA_TEAM_GID),
+  asana: new AsanaClient(env.ASANA_TOKEN, asanaTarget(env)!),
   store: new InMemoryStore(),
   routing: loadRouting(),
   template: loadTemplate(),

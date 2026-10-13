@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { AsanaClient } from "./asana/client.js";
 import type { AsanaApi } from "./asana/types.js";
-import { loadRouting, loadTemplate } from "./config.js";
+import { asanaTarget, loadRouting, loadTemplate } from "./config.js";
 import { FakeAsana } from "./fakes.js";
 import { handleJob } from "./handoff/handlers.js";
 import { HubSpotClient } from "./hubspot/client.js";
@@ -10,7 +10,7 @@ import { InMemoryStore } from "./queue/store.js";
 // Runs one job against the real HubSpot API, without webhooks:
 //   npm run live -- route <contactId>
 //   npm run live -- handoff <dealId>
-// Without ASANA_TOKEN the Asana side is a dry run that only prints what it would create.
+// Without ASANA_TOKEN and a team or workspace gid, the Asana side is a dry run that only prints what it would create.
 const [command, id] = process.argv.slice(2);
 if ((command !== "route" && command !== "handoff") || !id) {
   console.error("Usage: npm run live -- route <contactId> | handoff <dealId>");
@@ -24,10 +24,11 @@ if (!token) {
 }
 
 const dryAsana = new FakeAsana();
-const dryRun = !(process.env.ASANA_TOKEN && process.env.ASANA_TEAM_GID);
+const target = asanaTarget(process.env);
+const dryRun = !(process.env.ASANA_TOKEN && target);
 const asana: AsanaApi = dryRun
   ? dryAsana
-  : new AsanaClient(process.env.ASANA_TOKEN!, process.env.ASANA_TEAM_GID!);
+  : new AsanaClient(process.env.ASANA_TOKEN!, target!);
 
 const hubspot = new HubSpotClient(token);
 if (dryRun) {
@@ -57,7 +58,7 @@ await handleJob(
 );
 
 if (dryRun && dryAsana.projects.length > 0) {
-  console.log("\nAsana dry run (no ASANA_TOKEN), would create:");
+  console.log("\nAsana dry run (no Asana token or target), would create:");
   for (const project of dryAsana.projects) {
     console.log(`  Project "${project.name}"`);
     for (const task of dryAsana.tasks) {
