@@ -27,9 +27,16 @@ const app = createApp({
   queue,
   clientSecret: env.HUBSPOT_CLIENT_SECRET,
   publicWebhookUrl: env.PUBLIC_WEBHOOK_URL,
+  workflowSecret: env.WORKFLOW_SECRET,
   wonStage: env.HUBSPOT_WON_STAGE,
 });
 
 app.listen(env.PORT, () => {
-  console.log(`hubspot-asana-handoff listening on :${env.PORT}`);
+  const routes = [
+    env.WORKFLOW_SECRET && "/webhooks/workflow/{contact,deal}",
+    env.HUBSPOT_CLIENT_SECRET && env.PUBLIC_WEBHOOK_URL && "/webhooks/hubspot",
+  ].filter(Boolean);
+  console.log(
+    `hubspot-asana-handoff listening on :${env.PORT} — routes: ${routes.join(", ")}`,
+  );
 });

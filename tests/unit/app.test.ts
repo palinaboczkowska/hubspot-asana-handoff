@@ -74,3 +74,71 @@ describe("POST /webhooks/hubspot", () => {
     });
   });
 });
+
+describe("POST /webhooks/workflow/:kind", () => {
+  const workflowSecret = "a-long-enough-shared-secret";
+
+  async function withWorkflowServer(fn: (base: string, jobs: Job[]) => Promise<void>) {
+    const jobs: Job[] = [];
+    const queue = new JobQueue<Job>(async (job) => void jobs.push(job), {
+      maxAttempts: 1,
+      baseDelayMs: 0,
+    });
+    const app = createApp({ queue, wonStage: "closedwon", workflowSecret });
+    const server = app.listen(0);
+    try {
+      const { port } = server.address() as AddressInfo;
+      await fn(`http://127.0.0.1:${port}`, jobs);
+      await queue.drain();
+    } finally {
+      server.close();
+    }
+  }
+
+  const post = (base: string, kind: string, body: unknown, secret?: string) =>
+    fetch(`${base}/webhooks/workflow/${kind}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(secret ? { "X-Webhook-Secret": secret } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+  it("queues a routing job for a contact", async () => {
+    await withWorkflowServer(async (base, jobs) => {
+      const res = await post(base, "contact", { objectId: 101 }, workflowSecret);
+      expect(res.status).toBe(200);
+      await new Promise((r) => setTimeout(r, 10));
+      expect(jobs[0]).toMatchObject({ kind: "route-lead", contactId: "101" });
+    });
+  });
+
+  it("rejects a request without the shared secret", async () => {
+    await withWorkflowServer(async (base, jobs) => {
+      expect((await post(base, "deal", { objectId: 900 })).status).toBe(401);
+      expect((await post(base, "deal", { objectId: 900 }, "wrong")).status).toBe(401);
+      expect(jobs).toHaveLength(0);
+    });
+  });
+
+  it("answers 400 when the body has no record id, instead of guessing", async () => {
+    await withWorkflowServer(async (base, jobs) => {
+      const res = await post(
+        base,
+        "contact",
+        { properties: { email: "a@b.c" } },
+        workflowSecret,
+      );
+      expect(res.status).toBe(400);
+      expect(jobs).toHaveLength(0);
+    });
+  });
+
+  it("serves 404 on the app webhook route when no client secret is configured", async () => {
+    await withWorkflowServer(async (base) => {
+      const res = await fetch(`${base}/webhooks/hubspot`, { method: "POST", body: "[]" });
+      expect(res.status).toBe(404);
+    });
+  });
+});

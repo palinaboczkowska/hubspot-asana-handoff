@@ -26,6 +26,20 @@ new leads wait in a shared inbox until someone decides who takes them. I
 built lead routing for HubSpot before; this project rebuilds it from scratch
 and adds the handoff to production.
 
+## Two ways in
+
+HubSpot can reach this service in two different ways, and they are not the same:
+
+|          | App webhook                           | Workflow webhook                         |
+| -------- | ------------------------------------- | ---------------------------------------- |
+| Sent by  | A HubSpot app subscribing to events   | A workflow you build by clicking         |
+| Payload  | A batch of events with object ids     | The enrolled record itself               |
+| Auth     | HubSpot's v3 signature, verified here | No signature, so a shared secret header  |
+| Endpoint | `POST /webhooks/hubspot`              | `POST /webhooks/workflow/{contact,deal}` |
+
+Both end up as the same job on the same queue. Each route only serves traffic
+when its configuration is present, so the service can run with either one.
+
 ## How it works
 
 ```mermaid
@@ -72,8 +86,14 @@ flowchart LR
 
 ## Status and limits
 
-- Logic, signature check, queue and both clients are built and tested
-  offline against fakes.
+- Logic, signature checks, queue and both clients are built and tested
+  offline against fakes (28 tests).
+- **Deployed to Google Cloud Run**, with secrets in Secret Manager and the
+  service account limited to reading them. The workflow webhook endpoints are
+  live and reject requests without the shared secret.
+- **Verified end to end against live HubSpot and Asana accounts:** a won deal
+  created an Asana project with the template tasks and due dates counted from
+  the close date, and the link was written back as a note on the deal.
 - **Verified against a live HubSpot test account (2026-10-13):** a new
   contact was routed and got its owner and a note; a won deal was read with
   its company and owner. Asana ran as a dry run (no token yet). Webhook
